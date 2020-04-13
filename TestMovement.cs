@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 
-public class PlayerMovement : MonoBehaviour
+public class TestMovement : MonoBehaviour
 {
     public bool debugOn = false;
     public bool autoWallRun = true;
@@ -14,6 +14,7 @@ public class PlayerMovement : MonoBehaviour
     public float speedMultiplier = 10.0f;
     public float rotationSpeed = 50;
     public float jumpForce = 500;
+    public float groundCorrectionDist = 0.3f;
     private Rigidbody body;
     private float vertical;
     private float horizontal;
@@ -26,6 +27,7 @@ public class PlayerMovement : MonoBehaviour
     public bool isRunning = false;
     [Tooltip("This lock is to make sure that a player who is already touching the wall and hold sprint and jumps WONT go into a wall run")]
     public bool wallSafetyLock = false;
+    public bool jumped = false;
     private float extraJumpDelay = 0.25f;
     
 
@@ -187,6 +189,8 @@ public class PlayerMovement : MonoBehaviour
             {
                 body.AddForce(transform.up * jumpForce);
                 isGrounded = false;
+                jumped = true;
+                anim.SetBool("jumped", true);
 
             }
             if (wallRunning)
@@ -230,6 +234,31 @@ public class PlayerMovement : MonoBehaviour
             body.AddForce(transform.up * jumpForce * 1.5f);
             body.AddForce(transform.forward * jumpForce); //NEEDS TO BE CHANGED TO CAMERA DIRECTION
             extraJump = false;
+        }
+        else
+        {
+            Debug.DrawRay(transform.position, transform.up * -groundCorrectionDist, Color.white);
+            if (!Physics.Raycast(transform.position, transform.up * -1, groundCorrectionDist))
+            {
+                isGrounded = false;
+            }
+            if (!isGrounded && !jumped)
+            {
+                Debug.Log("In air but didnt jump");
+                
+                RaycastHit hit;
+                Ray ray = new Ray(transform.position, transform.up * -groundCorrectionDist);
+                if(Physics.Raycast(ray, out hit))
+                {
+                    Debug.Log(hit.collider.gameObject.name);
+                    if (hit.collider.gameObject.tag == "Ground" && hit.distance < groundCorrectionDist * 5)
+                    {
+                        transform.position = hit.point;
+                    }
+                }
+
+                
+            }
         }
     }
 
@@ -304,6 +333,8 @@ public class PlayerMovement : MonoBehaviour
             anim.SetBool("secondJump", false);
             isGrounded = true;
             wallJump = false;
+            jumped = false;
+            anim.SetBool("jumped", false);
         }
         if (collision.gameObject.tag == "Wall")
         {
